@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+  <p><a href="/">&larr; Back to dashboard</a></p>
+  <h2>{{ product.title or product.url }}</h2>
+  <p><a href="{{ product.url }}" target="_blank" rel="noopener">View on {{ product.site }}</a></p>
+  <p>Current price: <strong>{{ product.current_price if product.current_price is not none else "—" }}</strong>
+     &nbsp;|&nbsp; Target price: <strong>{{ product.target_price }}</strong></p>
+
+  <canvas id="priceChart" height="100" data-product-id="{{ product.id }}" data-target-price="{{ product.target_price }}"></canvas>
+  <script src="/static/js/dashboard.js"></script>
+{% endblock %}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Stop-Process -Id 14928 -Force)",
+      "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue)",
+      "Bash(chromium-cli --help)",
+      "Bash(netstat -ano)",
+      "Bash(git add *)"
+    ]
+  }
+}

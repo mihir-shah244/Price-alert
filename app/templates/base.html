@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}PriceAlertHub{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-left">
+        <span class="brand-icon">⚡</span>
+        <div class="brand-text">
+          <div class="brand-title">
+            PriceAlertHub
+            <span class="live-badge">&#9679; Live Monitor</span>
+          </div>
+          <div class="brand-subtitle">Amazon &amp; Flipkart Price Drops &amp; Threshold Notifications</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <form method="post" action="/products/check-all">
+          <button type="submit" class="btn btn-secondary">&#8635; Check All Prices</button>
+        </form>
+        <button type="button" class="btn btn-primary" data-open-modal>+ Track Product</button>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <a class="tab {% if active_tab == 'products' %}active{% endif %}" href="/">
+        Products &amp; Alerts
+        <span class="tab-badge">{{ products_count | default(0) }}</span>
+      </a>
+      <a class="tab {% if active_tab == 'alerts' %}active{% endif %}" href="/alerts">
+        &#128276; Alert Logs
+        <span class="tab-badge">{{ alerts_count | default(0) }}</span>
+      </a>
+      <a class="tab {% if active_tab == 'settings' %}active{% endif %}" href="/settings">
+        Settings &amp; Scraper
+      </a>
+    </nav>
+
+    <main class="container">
+      {% block content %}{% endblock %}
+    </main>
+
+    {% block modal %}{% endblock %}
+    <script src="/static/js/modal.js"></script>
+  </body>
+</html>

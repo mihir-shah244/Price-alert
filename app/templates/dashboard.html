@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+  {% if not cards %}
+    <p class="empty">No products tracked yet. Click "+ Track Product" to add one.</p>
+  {% else %}
+    <div class="card-grid">
+      {% for card in cards %}
+        <article class="product-card {% if card.met_target %}met-target{% endif %}">
+          {% if card.met_target %}
+            <div class="alert-banner">
+              &#10003; PRICE DROP ALERT TRIGGERED!
+              {% if card.savings %}<span>Save {{ card.savings }} below target</span>{% endif %}
+            </div>
+          {% endif %}
+
+          <div class="card-top">
+            <div class="badges">
+              <span class="site-badge site-{{ card.site }}">{{ card.site | upper }}</span>
+              <span class="category-badge">{{ card.category }}</span>
+            </div>
+            <span class="status-badge">&#128257; Active</span>
+          </div>
+
+          <div class="card-body">
+            <div class="thumb">
+              {% if card.image_url %}
+                <img src="{{ card.image_url }}" alt="{{ card.title }}" loading="lazy" />
+              {% else %}
+                <span class="thumb-placeholder">&#128247;</span>
+              {% endif %}
+            </div>
+            <div class="card-info">
+              <a href="/products/{{ card.id }}" class="product-title">{{ card.title }}</a>
+              <a href="{{ card.url }}" target="_blank" rel="noopener" class="store-link">View Store Link &#8599;</a>
+            </div>
+          </div>
+
+          <div class="card-row">
+            <span class="row-label">Current Price</span>
+            <span class="row-value">
+              {{ card.current_price or "—" }}
+              {% if card.original_price %}<s class="original-price">{{ card.original_price }}</s>{% endif %}
+            </span>
+          </div>
+
+          <div class="card-row">
+            <span class="row-label">Target Threshold</span>
+            <details class="edit-target">
+              <summary class="row-value target-value">{{ card.target_price }} &#9998;</summary>
+              <form method="post" action="/products/{{ card.id }}/edit" class="inline-form">
+                <input type="number" name="target_price" value="{{ card.target_price_raw }}" step="0.01" min="0" required />
+                <button type="submit">Save</button>
+              </form>
+            </details>
+          </div>
+
+          <div class="card-row progress-row">
+            <span class="row-label">Progress to target</span>
+            <span class="row-value {% if card.met_target %}text-success{% endif %}">{{ card.distance_text }}</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill {% if card.met_target %}complete{% endif %}" style="width: {{ card.progress_pct }}%"></div>
+          </div>
+
+          <div class="card-footer">
+            <span class="last-checked">
+              Last checked: {{ card.last_checked.strftime("%I:%M %p") if card.last_checked else "not yet" }}
+            </span>
+            <div class="card-actions">
+              <a href="/products/{{ card.id }}" class="icon-btn" title="Price history">&#128200;</a>
+              <form method="post" action="/products/{{ card.id }}/check">
+                <button type="submit" class="btn btn-tiny">&#8635; Check</button>
+              </form>
+              <form method="post" action="/products/{{ card.id }}/delete">
+                <button type="submit" class="icon-btn danger" title="Delete">&#128465;</button>
+              </form>
+            </div>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endblock %}
+
+{% block modal %}
+  <div class="modal-backdrop" data-modal hidden>
+    <div class="modal">
+      <div class="modal-header">
+        <h2>&#8853; Track New Product</h2>
+        <button type="button" class="icon-btn" data-close-modal>&times;</button>
+      </div>
+      <form method="post" action="/products" class="modal-form">
+        <label>
+          Product URL (Amazon or Flipkart)
+          <div class="url-field">
+            <input type="url" name="url" placeholder="https://www.amazon.in/dp/..." required />
+            <button type="button" class="btn btn-secondary" title="Pre-fill title/price (coming soon)">&#10024; Fetch Details</button>
+          </div>
+        </label>
+        <div class="modal-form-row">
+          <label>
+            Target Alert Price
+            <input type="number" name="target_price" placeholder="Target threshold" step="0.01" min="0" required />
+          </label>
+          <label>
+            Category
+            <select name="category">
+              {% for choice in category_choices %}
+                <option value="{{ choice }}">{{ choice }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
+          <button type="submit" class="btn btn-primary">&#128190; Start Price Tracking</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

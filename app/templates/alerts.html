@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="panel">
+    <div class="panel-header">
+      <div class="panel-heading">
+        <span class="panel-icon">&#128276;</span>
+        <div>
+          <h2>Dispatched Alert Logs</h2>
+          <p class="panel-subtitle">Auditable log of price drop notifications &amp; SMTP history</p>
+        </div>
+      </div>
+      <form method="get" action="/alerts" class="alert-filters">
+        <input type="search" name="q" value="{{ q }}" placeholder="Search alert logs..." />
+        <select name="status" onchange="this.form.submit()">
+          <option value="all" {% if status == "all" %}selected{% endif %}>All Statuses</option>
+          <option value="sent" {% if status == "sent" %}selected{% endif %}>Sent</option>
+          <option value="simulated" {% if status == "simulated" %}selected{% endif %}>Simulated</option>
+        </select>
+      </form>
+    </div>
+
+    {% if not rows %}
+      <p class="empty">No alerts have been sent yet.</p>
+    {% else %}
+      <div class="table-scroll">
+        <table class="alert-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Product &amp; Store</th>
+              <th>Price at Alert</th>
+              <th>Target Price</th>
+              <th>Recipient</th>
+              <th>Delivery Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rows %}
+              <tr>
+                <td>
+                  <div class="timestamp-date">{{ row.sent_at.month }}/{{ row.sent_at.day }}/{{ row.sent_at.year }}</div>
+                  <div class="timestamp-time">{{ row.sent_at.strftime("%I:%M %p") }}</div>
+                </td>
+                <td>
+                  <span class="site-badge site-{{ row.site }}">{{ row.site | upper }}</span>
+                  <a href="/products/{{ row.product_id }}" class="alert-product-title">{{ row.title }}</a>
+                  <div class="alert-subtitle">{{ row.subtitle }}</div>
+                </td>
+                <td class="price-at-alert">{{ row.price_at_alert }}</td>
+                <td class="target-price-cell">{{ row.target_price }}</td>
+                <td>
+                  <span class="recipient">&#9993; {{ row.recipient }}</span>
+                </td>
+                <td>
+                  <span class="status-pill status-{{ row.status | lower }}">&#128337; {{ row.status }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
