@@ -25,7 +25,9 @@ class Settings(BaseSettings):
 
     @property
     def use_turso(self) -> bool:
-        return bool(self.TURSO_DATABASE_URL and self.TURSO_AUTH_TOKEN)
+        url = (self.TURSO_DATABASE_URL or "").strip().strip('"').strip("'")
+        token = (self.TURSO_AUTH_TOKEN or "").strip().strip('"').strip("'")
+        return bool(url and token)
 
 
 settings = Settings()

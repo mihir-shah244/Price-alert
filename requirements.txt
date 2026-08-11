@@ -1,7 +1,7 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
-sqlalchemy-libsql; sys_platform != "win32"
+sqlalchemy-libsql; platform_system != "Windows"
 jinja2
 python-multipart
 requests
