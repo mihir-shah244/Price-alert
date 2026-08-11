@@ -1,6 +1,7 @@
 import logging
 import os
 
+import turso_serverless
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import declarative_base, sessionmaker
@@ -15,27 +16,27 @@ def _clean(value: str) -> str:
     return value.strip().strip('"').strip("'")
 
 
+def _turso_creator(turso_url: str, turso_token: str):
+    def creator():
+        conn = turso_serverless.connect(turso_url, auth_token=turso_token)
+        # SQLAlchemy's SQLite dialect calls create_function for REGEXP; HTTP driver has none.
+        if not hasattr(conn, "create_function"):
+            conn.create_function = lambda *args, **kwargs: None  # type: ignore[method-assign]
+        return conn
+
+    return creator
+
+
 def _create_engine() -> Engine:
     turso_url = _clean(settings.TURSO_DATABASE_URL)
     turso_token = _clean(settings.TURSO_AUTH_TOKEN)
     on_vercel = os.getenv("VERCEL") == "1"
 
     if turso_url and turso_token:
-        import sqlalchemy_libsql  # noqa: F401
-
-        if turso_url.startswith("libsql://"):
-            engine_url = f"sqlite+{turso_url}?secure=true"
-        elif turso_url.startswith("https://"):
-            # Accept https://host → sqlite+libsql://host
-            host = turso_url.removeprefix("https://")
-            engine_url = f"sqlite+libsql://{host}?secure=true"
-        else:
-            engine_url = f"sqlite+libsql://{turso_url}?secure=true"
-
         logger.info("Database: Turso remote (%s)", turso_url)
         return create_engine(
-            engine_url,
-            connect_args={"auth_token": turso_token},
+            "sqlite://",
+            creator=_turso_creator(turso_url, turso_token),
             poolclass=NullPool,
         )
 

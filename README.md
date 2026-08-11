@@ -32,7 +32,7 @@ Local SQLite (`DATABASE_URL=sqlite:///data/app.db`) does not work on Vercel (rea
    - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `ALERT_RECIPIENT_EMAIL`
 3. Redeploy. Cron hits `GET /api/cron/check-prices` every 4 hours (`vercel.json`).
 
-Leave `TURSO_*` empty locally so Windows uses SQLite via `DATABASE_URL`.
+Leave `TURSO_*` empty to use local SQLite (`DATABASE_URL`). With Turso set, the app uses `turso_serverless` (HTTP) — works on Windows and Vercel.
 
 ## Notes
 
