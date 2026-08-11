@@ -17,7 +17,7 @@ from app.models import AlertSent, PriceHistory, Product
 from app.notifier import send_email
 from app.scheduler import check_single_product, run_price_checks, shutdown_scheduler, start_scheduler
 from app.scrapers import get_scraper_for_url, get_site_for_url
-from app.scrapers.base import ScraperError
+from app.scrapers.base import ScraperError, friendly_scrape_error, scrape_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,7 @@ def _build_card(product: Product) -> dict:
         "progress_pct": progress_pct,
         "distance_text": distance_text,
         "last_checked": last_checked,
+        "last_scrape_error": product.last_scrape_error,
     }
 
 
@@ -296,11 +297,44 @@ def send_test_email():
     return RedirectResponse(url="/settings?test=sent", status_code=303)
 
 
+@app.post("/products/fetch-details")
+def fetch_product_details(url: str = Form(...)):
+    """Preview a product's title/price/image without saving anything.
+
+    Backs the modal's "Fetch Details" button — the product is only
+    persisted when the user submits "Start Price Tracking".
+    """
+    try:
+        site = get_site_for_url(url)
+    except ValueError as exc:
+        return JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+
+    try:
+        scraper = get_scraper_for_url(url)
+        result = scrape_with_retry(scraper, url)
+    except ScraperError as exc:
+        return JSONResponse({"ok": False, "error": friendly_scrape_error(exc)})
+
+    return {
+        "ok": True,
+        "site": site,
+        "title": result.get("title"),
+        "price": result.get("price"),
+        "original_price": result.get("original_price"),
+        "image_url": result.get("image_url"),
+    }
+
+
 @app.post("/products")
 def add_product(
     url: str = Form(...),
     target_price: float = Form(...),
     category: str = Form("Uncategorized"),
+    title: str = Form(""),
+    prefetched_url: str = Form(""),
+    prefetched_price: float | None = Form(None),
+    prefetched_original_price: float | None = Form(None),
+    prefetched_image_url: str = Form(""),
     db: Session = Depends(get_db),
 ):
     try:
@@ -313,22 +347,35 @@ def add_product(
         site=site,
         category=category or "Uncategorized",
         target_price=target_price,
+        title=title.strip() or None,
     )
     db.add(product)
     db.commit()
     db.refresh(product)
 
-    try:
-        scraper = get_scraper_for_url(url)
-        result = scraper(url)
-        product.title = result.get("title")
-        product.current_price = result.get("price")
-        product.original_price = result.get("original_price")
-        product.image_url = result.get("image_url")
-        db.add(PriceHistory(product_id=product.id, price=product.current_price))
-        db.commit()
-    except ScraperError:
-        pass  # next scheduled run will retry
+    # Reuse the modal's "Fetch Details" preview instead of re-scraping, but
+    # only if it was fetched for this exact URL (the user may have edited
+    # the URL after previewing, in which case that data is stale).
+    if prefetched_price is not None and prefetched_url == url:
+        product.current_price = prefetched_price
+        product.original_price = prefetched_original_price
+        product.image_url = prefetched_image_url or None
+        product.last_scrape_error = None
+        db.add(PriceHistory(product_id=product.id, price=prefetched_price))
+    else:
+        try:
+            scraper = get_scraper_for_url(url)
+            result = scrape_with_retry(scraper, url)
+            product.current_price = result.get("price")
+            product.original_price = result.get("original_price")
+            product.image_url = result.get("image_url")
+            product.last_scrape_error = None
+            db.add(PriceHistory(product_id=product.id, price=product.current_price))
+            if not product.title:
+                product.title = result.get("title")
+        except ScraperError as exc:
+            product.last_scrape_error = friendly_scrape_error(exc)
+    db.commit()
 
     return RedirectResponse(url="/", status_code=303)
 

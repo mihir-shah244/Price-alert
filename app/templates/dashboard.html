@@ -42,6 +42,9 @@
               {% if card.original_price %}<s class="original-price">{{ card.original_price }}</s>{% endif %}
             </span>
           </div>
+          {% if card.last_scrape_error %}
+            <div class="scrape-warning">&#9888; {{ card.last_scrape_error }}</div>
+          {% endif %}
 
           <div class="card-row">
             <span class="row-label">Target Threshold</span>
@@ -89,14 +92,31 @@
         <h2>&#8853; Track New Product</h2>
         <button type="button" class="icon-btn" data-close-modal>&times;</button>
       </div>
-      <form method="post" action="/products" class="modal-form">
+      <form method="post" action="/products" class="modal-form" data-track-form>
         <label>
           Product URL (Amazon or Flipkart)
           <div class="url-field">
-            <input type="url" name="url" placeholder="https://www.amazon.in/dp/..." required />
-            <button type="button" class="btn btn-secondary" title="Pre-fill title/price (coming soon)">&#10024; Fetch Details</button>
+            <input type="url" name="url" placeholder="https://www.amazon.in/dp/..." data-url-input required />
+            <button type="button" class="btn btn-secondary" data-fetch-details>&#10024; Fetch Details</button>
           </div>
         </label>
+
+        <div class="fetch-preview" data-fetch-preview hidden>
+          <div class="thumb" data-fetch-preview-thumb>
+            <span class="thumb-placeholder">&#128247;</span>
+          </div>
+          <div class="fetch-preview-info">
+            <div class="fetch-preview-status" data-fetch-preview-status></div>
+            <div class="fetch-preview-title" data-fetch-preview-title></div>
+            <div class="fetch-preview-price" data-fetch-preview-price></div>
+          </div>
+        </div>
+
+        <label>
+          Product Title / Label (Optional)
+          <input type="text" name="title" placeholder="e.g. Sony WH-1000XM5 Headphones" data-title-input />
+        </label>
+
         <div class="modal-form-row">
           <label>
             Target Alert Price
@@ -111,6 +131,12 @@
             </select>
           </label>
         </div>
+
+        <input type="hidden" name="prefetched_url" data-prefetched-url value="" />
+        <input type="hidden" name="prefetched_price" data-prefetched-price value="" />
+        <input type="hidden" name="prefetched_original_price" data-prefetched-original-price value="" />
+        <input type="hidden" name="prefetched_image_url" data-prefetched-image-url value="" />
+
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" data-close-modal>Cancel</button>
           <button type="submit" class="btn btn-primary">&#128190; Start Price Tracking</button>

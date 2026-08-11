@@ -10,7 +10,7 @@ from app.database import SessionLocal, init_db
 from app.models import PriceHistory, Product
 from app.notifier import maybe_send_alert
 from app.scrapers import get_scraper_for_url
-from app.scrapers.base import ScraperError
+from app.scrapers.base import ScraperError, friendly_scrape_error
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,9 @@ def check_single_product(db: Session, product: Product) -> bool:
         result = scraper(product.url)
     except (ScraperError, ValueError) as exc:
         logger.warning("Scrape failed for product %s (%s): %s", product.id, product.url, exc)
+        if isinstance(exc, ScraperError):
+            product.last_scrape_error = friendly_scrape_error(exc)
+            db.commit()
         return False
 
     new_price = result["price"]
@@ -35,6 +38,7 @@ def check_single_product(db: Session, product: Product) -> bool:
     product.current_price = new_price
     product.original_price = result.get("original_price") or product.original_price
     product.image_url = result.get("image_url") or product.image_url
+    product.last_scrape_error = None
 
     db.add(PriceHistory(product_id=product.id, price=new_price))
     db.commit()

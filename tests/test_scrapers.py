@@ -66,14 +66,26 @@ def test_amazon_parse_html_missing_title_raises():
         amazon_parse_html(html)
 
 
-def test_flipkart_parse_html():
-    html = """
+def _flipkart_ld_json(*, price=2499, mrp=None, image="https://example.com/widget.jpg"):
+    import json
+
+    payload = {
+        "name": "Great Widget",
+        "image": [image] if image else [],
+        "offers": {"price": price, "priceCurrency": "INR"},
+    }
+    body = json.dumps(payload)
+    mrp_blob = f'{{"mrp":{mrp}}}' if mrp is not None else ""
+    return f"""
     <html>
-      <span class="B_NuCI">Great Widget</span>
-      <div class="_30jeq3">₹2,499</div>
+      <script type="application/ld+json">{body}</script>
+      <script>{mrp_blob}</script>
     </html>
     """
-    result = flipkart_parse_html(html)
+
+
+def test_flipkart_parse_html():
+    result = flipkart_parse_html(_flipkart_ld_json(image=None))
     assert result["title"] == "Great Widget"
     assert result["price"] == 2499.0
     assert result["original_price"] is None
@@ -81,20 +93,22 @@ def test_flipkart_parse_html():
 
 
 def test_flipkart_parse_html_with_original_price_and_image():
-    html = """
-    <html>
-      <span class="B_NuCI">Great Widget</span>
-      <div class="_30jeq3">₹2,499</div>
-      <div class="_3I9_wc">₹2,999</div>
-      <img class="_396cs4" src="https://example.com/widget.jpg" />
-    </html>
-    """
-    result = flipkart_parse_html(html)
+    result = flipkart_parse_html(_flipkart_ld_json(price=2499, mrp=2999))
     assert result["original_price"] == 2999.0
     assert result["image_url"] == "https://example.com/widget.jpg"
 
 
 def test_flipkart_parse_html_missing_price_raises():
-    html = '<html><span class="B_NuCI">Great Widget</span></html>'
+    html = """
+    <html>
+      <script type="application/ld+json">{"name": "Great Widget"}</script>
+    </html>
+    """
+    with pytest.raises(ScrapeParseError):
+        flipkart_parse_html(html)
+
+
+def test_flipkart_parse_html_missing_ld_json_raises():
+    html = "<html><span>Great Widget</span></html>"
     with pytest.raises(ScrapeParseError):
         flipkart_parse_html(html)

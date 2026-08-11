@@ -1,14 +1,9 @@
 import re
+import time
+from typing import Callable
 
-import requests
-
-from app.config import settings
-
-# TODO(playwright fallback): if a site's price is JS-rendered and `fetch()`
-# above never contains it in the raw HTML, add `scrape_with_browser(url)`
-# implementing the same `{title, price}` contract, gated behind a
-# USE_PLAYWRIGHT_FALLBACK config flag. Not needed for v1 — anti-bot blocking
-# (see ScrapeBlockedError) is the more common real-world failure mode.
+from curl_cffi import requests
+from curl_cffi.requests.exceptions import RequestException
 
 
 class ScraperError(Exception):
@@ -27,17 +22,18 @@ _PRICE_RE = re.compile(r"[\d,]+(?:\.\d+)?")
 
 
 def get_headers() -> dict:
-    return {
-        "User-Agent": settings.SCRAPER_USER_AGENT,
-        "Accept-Language": "en-US,en;q=0.9",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-    }
+    # No User-Agent override here: `impersonate="chrome"` in fetch() already
+    # sends a matching Chrome UA + TLS/HTTP2 fingerprint, and overriding just
+    # the UA string would desync that pair — a mismatch bot-detection looks for.
+    return {"Accept-Language": "en-US,en;q=0.9"}
 
 
 def fetch(url: str, timeout: float = 10.0) -> str:
     try:
-        response = requests.get(url, headers=get_headers(), timeout=timeout)
-    except requests.RequestException as exc:
+        response = requests.get(
+            url, headers=get_headers(), timeout=timeout, impersonate="chrome"
+        )
+    except RequestException as exc:
         raise ScraperError(f"Request failed for {url}: {exc}") from exc
 
     if response.status_code in (403, 429, 503):
@@ -46,9 +42,39 @@ def fetch(url: str, timeout: float = 10.0) -> str:
         )
     try:
         response.raise_for_status()
-    except requests.HTTPError as exc:
+    except RequestException as exc:
         raise ScraperError(f"Request failed for {url}: {exc}") from exc
     return response.text
+
+
+def scrape_with_retry(
+    scraper: Callable[[str], dict], url: str, attempts: int = 2, delay: float = 1.5
+) -> dict:
+    """Run `scraper(url)`, retrying on ScraperError up to `attempts` times.
+
+    Sites like Amazon/Flipkart occasionally block or hiccup on a single
+    request; a short retry gives a real second chance without the request
+    hanging for long. Re-raises the last error if every attempt fails.
+    """
+    last_error: ScraperError | None = None
+    for attempt in range(attempts):
+        try:
+            return scraper(url)
+        except ScraperError as exc:
+            last_error = exc
+            if attempt < attempts - 1:
+                time.sleep(delay)
+    assert last_error is not None
+    raise last_error
+
+
+def friendly_scrape_error(exc: ScraperError) -> str:
+    """Human-readable status for the UI, distinct from the raw exception text."""
+    if isinstance(exc, ScrapeBlockedError):
+        return "Site blocked the price check - will retry automatically"
+    if isinstance(exc, ScrapeParseError):
+        return "Couldn't read the price from this page - will retry automatically"
+    return "Price check failed - will retry automatically"
 
 
 def parse_price(text: str) -> float:

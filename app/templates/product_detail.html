@@ -5,6 +5,9 @@
   <p><a href="{{ product.url }}" target="_blank" rel="noopener">View on {{ product.site }}</a></p>
   <p>Current price: <strong>{{ product.current_price if product.current_price is not none else "—" }}</strong>
      &nbsp;|&nbsp; Target price: <strong>{{ product.target_price }}</strong></p>
+  {% if product.last_scrape_error %}
+    <p class="scrape-warning">&#9888; {{ product.last_scrape_error }}</p>
+  {% endif %}
 
   <canvas id="priceChart" height="100" data-product-id="{{ product.id }}" data-target-price="{{ product.target_price }}"></canvas>
   <script src="/static/js/dashboard.js"></script>

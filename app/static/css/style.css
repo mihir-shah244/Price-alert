@@ -307,6 +307,15 @@ button, .btn {
 
 .text-success { color: var(--success); }
 
+.scrape-warning {
+  font-size: 0.78rem;
+  color: #b45309;
+  background: #fef3c7;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  margin: -0.15rem 0 0.3rem;
+}
+
 .progress-bar {
   height: 6px;
   border-radius: 999px;
@@ -407,6 +416,44 @@ label {
 }
 
 .url-field input { flex: 1; }
+
+.fetch-preview {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  border: 1px solid var(--primary);
+  background: #f5f4ff;
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+.fetch-preview .thumb { background: #fff; }
+
+.fetch-preview-info { min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+
+.fetch-preview-status {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.fetch-preview-status-ok { color: var(--success); }
+.fetch-preview-status-error { color: #b45309; }
+
+.fetch-preview-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fetch-preview-price {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
 
 .modal-actions {
   display: flex;

@@ -5,10 +5,10 @@ turso_serverless
 jinja2
 python-multipart
 requests
+curl_cffi
 beautifulsoup4
 lxml
 apscheduler
 pydantic-settings
 httpx
 pytest
-# playwright  # optional fallback for JS-rendered pricing, not used in v1

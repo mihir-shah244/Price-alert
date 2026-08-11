@@ -5,7 +5,10 @@
       "PowerShell(Get-NetTCPConnection -LocalPort 8000 -ErrorAction SilentlyContinue)",
       "Bash(chromium-cli --help)",
       "Bash(netstat -ano)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(curl -s -X POST http://127.0.0.1:8811/products -d url=https://www.amazon.in/dp/B0CHX3TW6X -d target_price=1000 -d category=Electronics -d 'title=My Custom iPhone Label' -d prefetched_url=https://www.amazon.in/dp/B0CHX3TW6X -d prefetched_price=229.0 -d prefetched_image_url=https://m.media-amazon.com/images/I/31vz6yNQ6+L._SY300_SX300_QL70_FMwebp_.jpg -o /dev/null -w 'create status: %{http_code}\\\\n')"
     ]
   }
 }

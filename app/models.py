@@ -22,6 +22,7 @@ class Product(Base):
     target_price: Mapped[float] = mapped_column(Float, nullable=False)
     current_price: Mapped[float | None] = mapped_column(Float, nullable=True)
     original_price: Mapped[float | None] = mapped_column(Float, nullable=True)
+    last_scrape_error: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=_utcnow)
 
     price_history: Mapped[list["PriceHistory"]] = relationship(
