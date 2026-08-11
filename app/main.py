@@ -1,9 +1,11 @@
 import logging
+import secrets
 from contextlib import asynccontextmanager
+from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from fastapi.responses import RedirectResponse
+from fastapi import Depends, FastAPI, Form, Header, HTTPException, Request
+from fastapi.responses import JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import or_
@@ -18,6 +20,8 @@ from app.scrapers import get_scraper_for_url, get_site_for_url
 from app.scrapers.base import ScraperError
 
 logger = logging.getLogger(__name__)
+
+_APP_DIR = Path(__file__).resolve().parent
 
 CATEGORY_CHOICES = [
     "Electronics",
@@ -43,8 +47,8 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Price Alert Dashboard", lifespan=lifespan)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+app.mount("/static", StaticFiles(directory=str(_APP_DIR / "static")), name="static")
+templates = Jinja2Templates(directory=str(_APP_DIR / "templates"))
 
 
 def _currency_symbol(url: str) -> str:
@@ -153,6 +157,25 @@ def _build_card(product: Product) -> dict:
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/cron/check-prices")
+def cron_check_prices(
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    """Vercel Cron entrypoint. Requires Authorization: Bearer <CRON_SECRET>."""
+    expected = settings.CRON_SECRET
+    if not expected:
+        raise HTTPException(status_code=503, detail="CRON_SECRET is not configured")
+    provided = ""
+    if authorization and authorization.lower().startswith("bearer "):
+        provided = authorization[7:].strip()
+    if not provided or not secrets.compare_digest(provided, expected):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    run_price_checks(db)
+    return JSONResponse({"ok": True})
 
 
 @app.get("/")

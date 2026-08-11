@@ -1,6 +1,7 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
+sqlalchemy-libsql; sys_platform != "win32"
 jinja2
 python-multipart
 requests
@@ -11,3 +12,4 @@ pydantic-settings
 httpx
 pytest
 # playwright  # optional fallback for JS-rendered pricing, not used in v1
+

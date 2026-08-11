@@ -339,3 +339,35 @@ def test_check_all_products_redirects_to_next(client, db_session):
     assert r.status_code == 303
     assert r.headers["location"] == "/settings"
 
+
+def test_cron_check_prices_requires_secret(client):
+    from app.config import settings
+
+    settings.CRON_SECRET = "test-cron-secret"
+    r = client.get("/api/cron/check-prices")
+    assert r.status_code == 401
+
+
+def test_cron_check_prices_unauthorized(client):
+    from app.config import settings
+
+    settings.CRON_SECRET = "test-cron-secret"
+    r = client.get("/api/cron/check-prices", headers={"Authorization": "Bearer wrong"})
+    assert r.status_code == 401
+
+
+def test_cron_check_prices_ok(client, db_session, monkeypatch):
+    from app.config import settings
+
+    settings.CRON_SECRET = "test-cron-secret"
+    called = []
+    monkeypatch.setattr("app.main.run_price_checks", lambda db: called.append(True))
+
+    r = client.get(
+        "/api/cron/check-prices",
+        headers={"Authorization": "Bearer test-cron-secret"},
+    )
+    assert r.status_code == 200
+    assert r.json() == {"ok": True}
+    assert called == [True]
+

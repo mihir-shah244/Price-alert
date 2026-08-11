@@ -19,6 +19,21 @@ cp .env.example .env            # fill in SMTP_USER / SMTP_PASSWORD (Gmail App P
 
 The dashboard is served at `http://127.0.0.1:8000/`. Adding a product attempts an immediate scrape; if it fails (site blocked, layout changed), the product is still added and picked up on the next scheduled check (default every `CHECK_INTERVAL_HOURS` hours, set in `.env`).
 
+## Deploy on Vercel + Turso
+
+Local SQLite (`DATABASE_URL=sqlite:///data/app.db`) does not work on Vercel (read-only filesystem). Use Turso Cloud:
+
+1. Create a Turso database and auth token.
+2. In Vercel → Project → Settings → Environment Variables, set:
+   - `TURSO_DATABASE_URL` — e.g. `libsql://your-db.turso.io`
+   - `TURSO_AUTH_TOKEN`
+   - `SCHEDULER_ENABLED=false`
+   - `CRON_SECRET` — long random string (Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `ALERT_RECIPIENT_EMAIL`
+3. Redeploy. Cron hits `GET /api/cron/check-prices` every 4 hours (`vercel.json`).
+
+Leave `TURSO_*` empty locally so Windows uses SQLite via `DATABASE_URL`.
+
 ## Notes
 
 - Scrapers (`app/scrapers/amazon.py`, `app/scrapers/flipkart.py`) use `requests` + `BeautifulSoup` against static HTML. Selectors are best-effort and may need updating if the sites change markup. A Playwright-based fallback for JS-rendered pricing is stubbed as a TODO in `app/scrapers/base.py` but not implemented. Alongside `{title, price}`, scrapers also best-effort extract `original_price` (strikethrough MRP) and `image_url` — both are optional and `None` when the page doesn't expose them.

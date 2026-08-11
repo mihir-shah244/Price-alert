@@ -57,6 +57,7 @@ def _isolate_settings():
         "ALERT_RECIPIENT_EMAIL",
         "CHECK_INTERVAL_HOURS",
         "SCHEDULER_ENABLED",
+        "CRON_SECRET",
     ]
     original = {field: getattr(settings, field) for field in fields}
     yield
